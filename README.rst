@@ -14,7 +14,11 @@ Up to 100k items queue. Not recommended for high performance requirements.
 
 Install
 -------
-As simple as: ```pip install kamma```
+As simple as: 
+
+```
+    pip install kamma
+```
 
 
 .. |Version| image:: https://img.shields.io/pypi/v/kamma.svg?
