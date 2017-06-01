@@ -16,9 +16,9 @@ Install
 -------
 As simple as: 
 
-```
+
     pip install kamma
-```
+
 
 
 .. |Version| image:: https://img.shields.io/pypi/v/kamma.svg?
