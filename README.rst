@@ -1,19 +1,20 @@
-# kamma
+kamma
+=====
 **kamma** is a very simplified task file queue that persist jobs and its argument data. Also it has a worker that process all pending jobs.
 
 |Version| |Status| |Coverage| |License|
 
-## Motivation
-Nowadays local disk access is undervalued resource because it is slow, is local and maybe is too trivial, however stored data is always available even after power outage. By contrast, network resources or remote third parties are not always ready to use. It is for these reason that I developed **kamma** to isolate *dependent* tasks from the miseries of the remote services. **kamma** would try to process forever always respecting the FIFO order.
+Motivation
+----------
+Nowadays local disk access is undervalued resource for many reasons, however stored data is always available even after power outage. By contrast, network resources or remote third parties are not always ready to use. For this reason I developed **kamma** in order to isolate *dependent* tasks from the miseries of remote services. **kamma** would try to process all pending tasks forever respecting the queue order.
 
-## Limitation
-Up to 100k items queue
+Limitations
+-----------
+Up to 100k items queue. Not recommended for high performance requirements.
 
-## Install
-
-'''
-    pip install kamma
-'''
+Install
+-------
+As simple as: ```pip install kamma```
 
 
 .. |Version| image:: https://img.shields.io/pypi/v/kamma.svg?
