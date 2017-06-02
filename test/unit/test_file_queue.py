@@ -3,12 +3,21 @@ try:
 except ImportError:
     import unittest
 
+import logging
 import sys
 import os
 
 # add kamma path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
+import kamma
 from kamma.file_queue import FileQueue
+
+
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)-8s] [%(name)-10s] [%(lineno)-4d] %(message)s'))
+logger_fqueue = logging.getLogger('kamma.file_queue')
+logger_fqueue.handlers = [handler]
+logger_fqueue.setLevel(logging.DEBUG)
 
 
 TEST_PATH = "test_queue"
@@ -68,12 +77,8 @@ class EnqueueDequeueTests(unittest.TestCase):
         while queue.length():
             queue.pop()
 
-    def tearDown(self):
-        queue = FileQueue(TEST_PATH)
-        while queue.length():
-            queue.pop()
-
     def test_enqueue_dequeue(self):
+        # enqueue NUM_ITEMS
         queue = FileQueue(TEST_PATH)
         length = queue.length()
         for i in range(length, length + NUM_ITEMS):
@@ -81,6 +86,7 @@ class EnqueueDequeueTests(unittest.TestCase):
         self.assertEqual(NUM_ITEMS, queue.length())
         queue = None
 
+        # enqueue NUM_ITEMS
         queue = FileQueue(TEST_PATH)
         length = queue.length()
         for i in range(length, length + NUM_ITEMS):
@@ -88,7 +94,8 @@ class EnqueueDequeueTests(unittest.TestCase):
         self.assertEqual(NUM_ITEMS + NUM_ITEMS, queue.length())
         queue = None
 
-        queue = FileQueue(TEST_PATH)
+        # dequeue NUM_ITEMS
+        queue = FileQueue(TEST_PATH, max_head_index=-1)
         counter = 0
         while counter < NUM_ITEMS:
             item = queue.pop()
@@ -100,7 +107,16 @@ class EnqueueDequeueTests(unittest.TestCase):
         self.assertEqual(NUM_ITEMS, queue.length())
         queue = None
 
-        queue = FileQueue(TEST_PATH)
+        # enqueue NUM_ITEMS
+        queue = FileQueue(TEST_PATH, max_head_index=-1)
+        length = queue.length()
+        for i in range(length, length + NUM_ITEMS):
+            queue.push("{0:05d}".format(i + NUM_ITEMS))
+        self.assertEqual(NUM_ITEMS + NUM_ITEMS, queue.length())
+        queue = None
+
+        # dequeue
+        queue = FileQueue(TEST_PATH, max_head_index=-1)
         counter = 0
         while queue.length():
             item = queue.pop()
@@ -108,9 +124,15 @@ class EnqueueDequeueTests(unittest.TestCase):
                 break
             self.assertEqual(counter + NUM_ITEMS, int(item))
             counter = counter + 1
-        self.assertEqual(NUM_ITEMS, counter)
+        self.assertEqual(NUM_ITEMS + NUM_ITEMS, counter)
         self.assertEqual(0, queue.length())
         queue = None
+
+'''
+TODO:
+
+* rotation
+'''
 
 
 if __name__ == '__main__':

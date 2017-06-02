@@ -6,11 +6,11 @@ kamma
 
 Motivation
 ----------
-Nowadays local disk access is undervalued resource for many reasons, however stored data is always available even after power outage. By contrast, network resources or remote third parties are not always ready to use. For this reason I developed **kamma** in order to isolate *dependent* tasks from the miseries of remote services. **kamma** would try to process all pending tasks forever respecting the queue order.
+Nowadays local disk access is undervalued resource for many reasons, however stored data is always available even after power outage. By contrast, network resources or remote third parties are not always ready to use. For this reason I developed **kamma** in order to isolate *dependent* tasks from the miseries of remote services. **kamma** would try process all pending tasks forever respecting the queue order.
 
 Limitations
 -----------
-Up to 100k items queue. Not recommended for high performance requirements.
+Up to ``(sys.maxint - FileQue.max_head_index)`` items can hold the queue. Not recommended for high performance scenarios.
 
 Install
 -------

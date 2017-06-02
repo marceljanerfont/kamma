@@ -4,87 +4,120 @@ import glob
 import logging
 import threading
 import traceback
+from multiprocessing import Manager
 
-logger = logging.getLogger("fqueue")
+logger = logging.getLogger(__name__)
 
 
 class FileQueue:
-    def __init__(self, path):
-        self.path = path
-        self.mutex = threading.Lock()
-        self.mutex.acquire()
-        self.items = []
+    def __init__(self, path, max_head_index=10):
+        self._path = path
+        self._max_head_index = max_head_index
+        self._manager = Manager()
+        self._items = self._manager.list()
+        self._mutex = threading.Lock()
+        self._mutex.acquire()
         try:
-            logger.info("initializing FileQueue at {}".format(self.path))
-            if not os.path.isdir(self.path):
-                os.makedirs(self.path)
-            self.items = [os.path.basename(file)[:5] for file in glob.glob(self.path + "/*.que")]
-            self.items.sort()
-            logger.debug("loaded items: {}".format(self.items))
-        except Exception:
-            logger.error(traceback.format_exc())
-            raise Exception("cannot initialize FileQueue at \'{}\'".format(self.path))
+            logger.info("initializing FileQueue at {}".format(self._path))
+            if not os.path.isdir(self._path):
+                os.makedirs(self._path)
+            self.__load_items()
         finally:
-            self.mutex.release()
+            self._mutex.release()
 
     def length(self):
-        self.mutex.acquire()
+        self._mutex.acquire()
         try:
-            return len(self.items)
-        except Exception:
-            logger.error(traceback.format_exc())
-            raise Exception("cannot get FileQueue length")
+            return len(self._items)
         finally:
-            self.mutex.release()
+            self._mutex.release()
 
     def head(self):
-        self.mutex.acquire()
+        self._mutex.acquire()
         try:
-            if len(self.items) > 0:
-                logger.debug("head item: {}".format(self.items[0]))
-                with open(self.__filename(self.items[0]), "r") as file:
+            head_idx = self.__head_index
+            if head_idx >= 0:
+                logger.debug("head item: {}".format(head_idx))
+                with open(self.__filename(head_idx), "r") as file:
                     return file.read()
             return None
-        except Exception:
-            logger.error(traceback.format_exc())
-            raise Exception("cannot get head item")
         finally:
-            self.mutex.release()
+            self._mutex.release()
 
     def pop(self):
-        self.mutex.acquire()
+        self._mutex.acquire()
         try:
             text = None
-            if len(self.items) > 0:
-                logger.debug("pop item: {}".format(self.items[0]))
-                with open(self.__filename(self.items[0]), "r") as file:
+            head_idx = self.__head_index
+            if head_idx >= 0:
+                logger.debug("pop item: {}".format(head_idx))
+                with open(self.__filename(head_idx), "r") as file:
                     text = file.read()
-                os.remove(self.__filename(self.items[0]))
-                self.items.pop(0)
+                os.remove(self.__filename(head_idx))
+                self._items.pop(0)
+                # rotate items
+                if self._max_head_index >= 0 and self.__head_index == self._max_head_index:
+                    self.__rotate_items()
+                # logger.debug("after pop items: {}".format(self._items))
             return text
-        except Exception:
-            logger.error(traceback.format_exc())
-            raise Exception("cannot pop item")
         finally:
-            self.mutex.release()
+            self._mutex.release()
 
     def push(self, text):
-        self.mutex.acquire()
+        self._mutex.acquire()
         try:
-            tail = -1
-            if len(self.items) > 0:
-                last_item = self.items[len(self.items) - 1]
-                tail = int(last_item)
-            item = "{0:05d}".format(tail + 1)
+            item = self.__tail_index + 1
             logger.debug("push item: {}".format(item))
             with open(self.__filename(item), "w") as file:
                 file.write(text)
-            self.items.append(item)
+            self._items.append(item)
         except Exception:
             logger.error(traceback.format_exc())
             raise Exception("cannot push item")
         finally:
-            self.mutex.release()
+            self._mutex.release()
+
+    @property
+    def head_index(self):
+        self._mutex.acquire()
+        try:
+            return self.__head_index
+        finally:
+            self._mutex.release()
+
+    @property
+    def max_head_index(self):
+        return self._max_head_index
+
+    @property
+    def tail_index(self):
+        self._mutex.acquire()
+        try:
+            return self.__tail_index
+        finally:
+            self._mutex.release()
+
+    @property
+    def __head_index(self):
+        return self._items[0] if len(self._items) > 0 else -1
+
+    @property
+    def __tail_index(self):
+        return self._items[len(self._items) - 1] if len(self._items) > 0 else -1
+
+    def __load_items(self):
+        self._items = [int(os.path.basename(file)[:-5]) for file in glob.glob(self._path + "/*.json")]
+        self._items.sort()
+        logger.debug("loaded items: {}".format(self._items))
 
     def __filename(self, item):
-        return self.path + "/" + item + ".que"
+        return self._path + "/" + str(item) + ".json"
+
+    def __rotate_items(self):
+        logger.debug("rotating queue items: {}".format(self._items))
+        counter = 0
+        for item in self._items:
+            # logger.debug("moving {} -> {}".format(self.__filename(item), self.__filename(counter)))
+            os.rename(self.__filename(item), self.__filename(counter))
+            counter = counter + 1
+        self.__load_items()
