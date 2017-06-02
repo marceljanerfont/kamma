@@ -4,13 +4,14 @@ except ImportError:
     import unittest
 
 import logging
+import shutil
 import sys
 import os
 
 # add kamma path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 import kamma
-from kamma.file_queue import FileQueue
+from kamma.queue import FileQueue
 
 
 handler = logging.StreamHandler()
@@ -31,9 +32,7 @@ class EnqueueTests(unittest.TestCase):
             queue.pop()
 
     def tearDown(self):
-        queue = FileQueue(TEST_PATH)
-        while queue.length():
-            queue.pop()
+        shutil.rmtree(TEST_PATH)
 
     def test_enqueue(self):
         queue = FileQueue(TEST_PATH)
@@ -54,9 +53,7 @@ class DequeueTests(unittest.TestCase):
         self.assertEqual(NUM_ITEMS, queue.length())
 
     def tearDown(self):
-        queue = FileQueue(TEST_PATH)
-        while queue.length():
-            queue.pop()
+        shutil.rmtree(TEST_PATH)
 
     def test_dequeue(self):
         queue = FileQueue(TEST_PATH)
@@ -76,6 +73,9 @@ class EnqueueDequeueTests(unittest.TestCase):
         queue = FileQueue(TEST_PATH)
         while queue.length():
             queue.pop()
+
+    def tearDown(self):
+        shutil.rmtree(TEST_PATH)
 
     def test_enqueue_dequeue(self):
         # enqueue NUM_ITEMS
