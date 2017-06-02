@@ -1,6 +1,6 @@
 kamma
 =====
-**kamma** is a very simplified task file queue that persist jobs and its argument data. Also it has a worker that process all pending jobs.
+**kamma** is a very simplified task file queue that persists tasks and its needed data. It also has a worker that process all pending tasks.
 
 |Version| |Status| |Coverage| |License|
 
@@ -18,7 +18,6 @@ As simple as:
 
 
     pip install kamma
-
 
 
 .. |Version| image:: https://img.shields.io/pypi/v/kamma.svg?
