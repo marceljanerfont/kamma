@@ -17,8 +17,5 @@ except ImportError:
 logging.getLogger(__name__).addHandler(NullHandler())
 
 
-
 class TaskNotRegistered(Exception):
     pass
-
-
