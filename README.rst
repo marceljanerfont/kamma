@@ -6,7 +6,7 @@ kamma
 
 Motivation
 ----------
-Nowadays local disk access is undervalued resource for many reasons, however stored data is always available even after power outage. By contrast, network resources or remote third parties are not always ready to use. For this reason I developed **kamma** in order to isolate *dependent* tasks from the miseries of remote services. **kamma** would try process all pending tasks forever respecting the queue order.
+Nowadays local disk access is an undervalued resource for many reasons, however stored data is always available even after power outage. By contrast, network resources or remote third parties are not always ready. Is for this reason I developed the **kamma** in order to isolate *dependent* tasks from the miseries of remote services. **kamma** would try process all pending tasks forever respecting the queue order.
 
 Limitations
 -----------

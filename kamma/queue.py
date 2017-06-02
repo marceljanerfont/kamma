@@ -25,6 +25,16 @@ class FileQueue:
         finally:
             self._mutex.release()
 
+    def purgue(self):
+        logger.info("purgue queue")
+        self._mutex.acquire()
+        try:
+            for item in self._items:
+                os.remove(self.__filename(item))
+            del self._items[:]
+        finally:
+            self._mutex.release()
+
     def length(self):
         self._mutex.acquire()
         try:

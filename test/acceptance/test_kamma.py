@@ -9,23 +9,23 @@ from random import randint
 import logging
 import sys
 import os
+import shutil
 # add kamma path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 import kamma
-from kamma import KammaWorker
+from kamma.worker import KammaWorker
 
 TEST_PATH = "test_queue"
 
 
 handler = logging.StreamHandler()
 handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)-8s] [%(name)-10s] [%(lineno)-4d] %(message)s'))
-logger_kamma = logging.getLogger('kamma')
+logger_kamma = logging.getLogger('kamma.worker')
 logger_kamma.handlers = [handler]
 logger_kamma.setLevel(logging.DEBUG)
-logger_fqueue = logging.getLogger('kamma.file_queue')
-# logger_fqueue.handlers = [handler]
+logger_fqueue = logging.getLogger('kamma.queue')
+logger_fqueue.handlers = [handler]
 logger_fqueue.setLevel(logging.DEBUG)
-
 logger = logging.getLogger('test')
 logger.handlers = [handler]
 logger.setLevel(logging.DEBUG)
@@ -39,6 +39,9 @@ class KammaTestsSimple(unittest.TestCase):
         for i in range(0, 300):
             self._tasks.append(u'task{}'.format(randint(0, 2)))
         logger.debug("tasks: {}".format(self._tasks))
+
+    def tearDown(self):
+        shutil.rmtree(TEST_PATH)
 
     def task0(self, data):
         task = 'task0'
@@ -81,9 +84,13 @@ class KammaTestsSimple(unittest.TestCase):
 
 
 class KammaTestsExceptionsInKamma(unittest.TestCase):
+    def tearDown(self):
+        shutil.rmtree(TEST_PATH)
+
     def test_exception_pushtask_TaskNotRegistered(self):
         worker = KammaWorker(
             queue_path=TEST_PATH,
+            tasks={},
             interval_sec=1)
         self.assertRaises(kamma.TaskNotRegistered, lambda: worker.push_task(key='task3', data={'key': 'task3'}))
         # worker.wait()
@@ -94,6 +101,9 @@ class KammaTestsExceptionsInTask(unittest.TestCase):
     def setUp(self):
         self.count = 0
         self.num_failures = 5
+
+    def tearDown(self):
+        shutil.rmtree(TEST_PATH)
 
     def task0(self, data):
         self.count = self.count + 1
