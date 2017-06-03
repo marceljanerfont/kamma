@@ -1,5 +1,9 @@
 language: python
 python:
+- 2.7
+- 3.3
+- 3.4
+- 3.5
 - 3.6
 install:
 - pip install codecov
@@ -7,6 +11,18 @@ script:
 - coverage run -m unittest discover -s test
 after_success:
 - codecov
+deploy:
+  provider: pypi
+  distributions: sdist bdist_wheel
+  server: https://pypi.python.org/pypi
+  skip_upload_docs: true
+  user: marceljanerfont
+  password:
+    secure: Y+zXYgYKxTvR1uD/ubNbMfpaAbM4t8ub5qyec4U7xztABrwx2zSkfDKeGoaqjP5u7fLgO4P+CyRSU60RzWjCe3RxPqJFjWzJuS5EiiqkwgGTkErvLfqxmtYP5XIrT9OpRY4YCfhrBvZpsZp6XSPJKXFBRS29Aes9m9CSKwJAB5gvdvEF2dtBfdt1BcJC3G0Km0bK1M181YEVthxVvuQN/2fR4TcdnXREIcNEBwTkbaxKcI4EtIUMZrlePuUot65q/0rgJJ+U2Ld9BXoRjgsKna3gQVWEOZL5vgL2Q6iCSHxU2kfkqnIl22oVvhCmCA4JlHa1lP+RFrGq+vcMEmhKZn3YB28QAnKQg090rKl+WZsMfDOUXaP/nC2PFsX/Y7DvtFDtHTB20DsgEMOv3felpHxN1MTp0EGYCPHl8l0TxVv1bp9p8ohLCnmHXZG6+/JUewq12LnZQlx3AKi8MATkMB0HvsL/2E9msuJQ67k6cmcFsYWn6oovbFXHeI92abAgHmY25e9NcwDUDT4VgtPsTdLQZK6cklPJM9tNUbvQQy7gTj5N+G4x9N9bAipkFOK+Jx0qQtru0V/CFNDV6jJDV8lBZNa5cRJAr1bEjM9C5KWEj/Y1RZ2ekDrU+JiOWsuDI7pJ0A73s5+Sz0J3GfNY0g8Smm65Mdzkj/xc0wuL8wM=
+  on:
+    python: 2.7
+    tags: false
+    branch: production
 deploy:
   provider: pypi
   distributions: sdist bdist_wheel
