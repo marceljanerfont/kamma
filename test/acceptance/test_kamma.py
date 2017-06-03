@@ -52,12 +52,12 @@ class KammaTestsCheckOrder(unittest.TestCase):
     def tearDown(self):
         _clear_queue()
 
-    def _taskx(self, task, data):
-        logger.debug("{} data: {}, tasks[0]: {}".format(task, data, self._tasks[0]))
-        self.assertEqual(task, data['key'])
-        self.assertEqual(task, self._tasks[0])
+    def _taskx(self, task_id, data):
+        logger.debug("{} data: {}, tasks[0]: {}".format(task_id, data, self._tasks[0]))
+        self.assertEqual(task_id, data['id'])
+        self.assertEqual(task_id, self._tasks[0])
         self._tasks.pop(0)
-        logger.debug("tasks: {}".format(self._tasks))
+        # logger.debug("tasks: {}".format(self._tasks))
 
     def task0(self, data):
         self._taskx('task0', data)
@@ -80,16 +80,17 @@ class KammaTestsCheckOrder(unittest.TestCase):
     def test_usual_case(self):
         worker = KammaWorker(
             queue_path=TEST_PATH,
-            retry_interval=10,
-            tasks=dict(
-                task0=self.task0, task1=self.task1,
-                task2=self.task2, task3=self.task3,
-                task4=self.task4, task5=self.task5))
-        # clone before since during the running the task list will be poped
+            task_callbacks=[
+                kamma.TaskCallback(id='task0', callback=self.task0),
+                kamma.TaskCallback(id='task1', callback=self.task1),
+                kamma.TaskCallback(id='task2', callback=self.task2),
+                kamma.TaskCallback(id='task3', callback=self.task3),
+                kamma.TaskCallback(id='task4', callback=self.task4),
+                kamma.TaskCallback(id='task5', callback=self.task5)])
         cloned_tasks = copy.deepcopy(self._tasks)
         worker.run_async()
         for task in cloned_tasks:
-            worker.push_task(key=task, data={'key': task})
+            worker.push_task(kamma.Task(id=task, data={'id': task}))
         worker.wait_empty_event()
         self.assertEqual(0, worker.pending())
         worker.stop()
@@ -107,9 +108,8 @@ class KammaTestsExceptionsInKamma(unittest.TestCase):
     def test_exception_pushtask_TaskNotRegistered(self):
         worker = KammaWorker(
             queue_path=TEST_PATH,
-            tasks={},
-            retry_interval=1)
-        self.assertRaises(kamma.TaskNotRegistered, lambda: worker.push_task(key='task3', data={'key': 'task3'}))
+            task_callbacks=[])
+        self.assertRaises(kamma.TaskNotRegistered, lambda: worker.push_task(kamma.Task(id='task0', data={'key': 'task0'})))
         # worker.wait()
         worker.stop()
 
@@ -132,8 +132,8 @@ class KammaTestsExceptionsInTask(unittest.TestCase):
         worker = KammaWorker(
             queue_path=TEST_PATH,
             retry_interval=1,
-            tasks=dict(task0=self.task0))
-        worker.push_task(key='task0', data={'key': 'task0'})
+            task_callbacks=[kamma.TaskCallback(id='task0', callback=self.task0)])
+        worker.push_task(kamma.Task(id='task0', data={'key': 'task0'}))
         worker.run_async()
         worker.wait_empty_event()
         worker.stop()
