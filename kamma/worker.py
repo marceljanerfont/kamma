@@ -56,10 +56,6 @@ class KammaWorker(object):
             self.exception = None
             raise e
 
-    def purgue(self):
-        if self.queue:
-            self.queue.purgue()
-
     def _is_registered(self, key):
         self.mutex.acquire()
         try:
