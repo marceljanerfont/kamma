@@ -30,7 +30,7 @@ class FileQueue:
         with self._mutex:
             head_idx = self.__head_index
             if head_idx >= 0:
-                logger.debug("head item: {}".format(head_idx))
+                logger.debug("head item: {}/{}".format(head_idx, len(self._items)))
                 with open(self.__filename(head_idx), "r") as file:
                     return file.read()
             return None
@@ -40,7 +40,7 @@ class FileQueue:
             text = None
             head_idx = self.__head_index
             if head_idx >= 0:
-                logger.debug("pop item: {}".format(head_idx))
+                logger.debug("pop item: {}/{}".format(head_idx, len(self._items)))
                 with open(self.__filename(head_idx), "r") as file:
                     text = file.read()
                 os.remove(self.__filename(head_idx))
@@ -55,7 +55,7 @@ class FileQueue:
         self._mutex.acquire()
         try:
             item = self.__tail_index + 1
-            logger.debug("push item: {}".format(item))
+            logger.debug("push item: {}/{}".format(item, len(self._items)))
             with open(self.__filename(item), "w") as file:
                 file.write(text)
             self._items.append(item)

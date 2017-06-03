@@ -76,7 +76,8 @@ class KammaWorker(object):
         try:
             while not self._quit:
                 try:
-                    self._process_queue()
+                    if self._queue.length() > 0:
+                        self._process_queue()
                     self._push_event.wait(10)
                 except kamma.TaskNotRegistered as e:
                     with self._mutex:
