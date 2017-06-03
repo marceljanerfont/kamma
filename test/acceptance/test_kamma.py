@@ -9,6 +9,7 @@ from random import randint
 import logging
 import sys
 import os
+import copy
 import shutil
 # add kamma path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
@@ -31,79 +32,96 @@ logger.handlers = [handler]
 logger.setLevel(logging.DEBUG)
 
 
-class KammaTestsSimple(unittest.TestCase):
+def _clear_queue():
+    try:
+        shutil.rmtree(TEST_PATH)
+    except Exception:
+        pass
+
+
+class KammaTestsCheckOrder(unittest.TestCase):
     def setUp(self):
+        _clear_queue()
         # Manager is necessary because it is modified from different threads
         self.manager = Manager()
         self._tasks = self.manager.list()
         for i in range(0, 300):
-            self._tasks.append(u'task{}'.format(randint(0, 2)))
+            self._tasks.append(u'task{}'.format(randint(0, 5)))
         logger.debug("tasks: {}".format(self._tasks))
 
     def tearDown(self):
-        shutil.rmtree(TEST_PATH)
+        _clear_queue()
+
+    def _taskx(self, task_id, data):
+        logger.debug("{} data: {}, tasks[0]: {}".format(task_id, data, self._tasks[0]))
+        self.assertEqual(task_id, data['id'])
+        self.assertEqual(task_id, self._tasks[0])
+        self._tasks.pop(0)
+        # logger.debug("tasks: {}".format(self._tasks))
 
     def task0(self, data):
-        task = 'task0'
-        logger.debug("{} data: {}, tasks[0]: {}".format(task, data, self._tasks[0]))
-        self.assertEqual(task, data['key'])
-        self.assertEqual(task, self._tasks[0])
-        self._tasks.pop(0)
-        logger.debug("tasks: {}".format(self._tasks))
+        self._taskx('task0', data)
 
     def task1(self, data):
-        task = 'task1'
-        logger.debug("{} data: {}, tasks[0]: {}".format(task, data, self._tasks[0]))
-        self.assertEqual(task, data['key'])
-        self.assertEqual(task, self._tasks[0])
-        self._tasks.pop(0)
-        logger.debug("tasks: {}".format(self._tasks))
+        self._taskx('task1', data)
 
     def task2(self, data):
-        task = 'task2'
-        logger.debug("{} data: {}, tasks[0]: {}".format(task, data, self._tasks[0]))
-        self.assertEqual(task, data['key'])
-        self.assertEqual(task, self._tasks[0])
-        self._tasks.pop(0)
-        logger.debug("tasks: {}".format(self._tasks))
+        self._taskx('task2', data)
+
+    def task3(self, data):
+        self._taskx('task3', data)
+
+    def task4(self, data):
+        self._taskx('task4', data)
+
+    def task5(self, data):
+        self._taskx('task5', data)
 
     def test_usual_case(self):
         worker = KammaWorker(
             queue_path=TEST_PATH,
-            interval_sec=1,
-            tasks=dict(
-                task0=self.task0,
-                task1=self.task1,
-                task2=self.task2))
-        for task in self._tasks:
-            worker.push_task(key=task, data={'key': task})
-        worker.wait()
+            task_callbacks=[
+                kamma.TaskCallback(id='task0', callback=self.task0),
+                kamma.TaskCallback(id='task1', callback=self.task1),
+                kamma.TaskCallback(id='task2', callback=self.task2),
+                kamma.TaskCallback(id='task3', callback=self.task3),
+                kamma.TaskCallback(id='task4', callback=self.task4),
+                kamma.TaskCallback(id='task5', callback=self.task5)])
+        cloned_tasks = copy.deepcopy(self._tasks)
+        worker.run_async()
+        for task in cloned_tasks:
+            worker.push_task(kamma.Task(id=task, data={'id': task}))
+        worker.wait_empty_event()
+        self.assertEqual(0, worker.pending())
         worker.stop()
         logger.debug("tasks: {}".format(self._tasks))
         self.assertEqual(0, len(self._tasks))
 
 
 class KammaTestsExceptionsInKamma(unittest.TestCase):
+    def setUp(self):
+        _clear_queue()
+
     def tearDown(self):
-        shutil.rmtree(TEST_PATH)
+        _clear_queue()
 
     def test_exception_pushtask_TaskNotRegistered(self):
         worker = KammaWorker(
             queue_path=TEST_PATH,
-            tasks={},
-            interval_sec=1)
-        self.assertRaises(kamma.TaskNotRegistered, lambda: worker.push_task(key='task3', data={'key': 'task3'}))
+            task_callbacks=[])
+        self.assertRaises(kamma.TaskNotRegistered, lambda: worker.push_task(kamma.Task(id='task0', data={'key': 'task0'})))
         # worker.wait()
         worker.stop()
 
 
 class KammaTestsExceptionsInTask(unittest.TestCase):
     def setUp(self):
+        _clear_queue()
         self.count = 0
-        self.num_failures = 5
+        self.num_failures = 3
 
     def tearDown(self):
-        shutil.rmtree(TEST_PATH)
+        _clear_queue()
 
     def task0(self, data):
         self.count = self.count + 1
@@ -113,10 +131,11 @@ class KammaTestsExceptionsInTask(unittest.TestCase):
     def test_exception_in_task(self):
         worker = KammaWorker(
             queue_path=TEST_PATH,
-            interval_sec=1,
-            tasks=dict(task0=self.task0))
-        worker.push_task(key='task0', data={'key': 'task0'})
-        worker.wait()
+            retry_interval=1,
+            task_callbacks=[kamma.TaskCallback(id='task0', callback=self.task0)])
+        worker.push_task(kamma.Task(id='task0', data={'key': 'task0'}))
+        worker.run_async()
+        worker.wait_empty_event()
         worker.stop()
         self.assertEqual(self.num_failures, self.count)
 

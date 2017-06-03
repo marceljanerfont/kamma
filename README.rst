@@ -20,6 +20,55 @@ As simple as:
     pip install kamma
 
 
+Example
+-------
+
+.. code-block:: python
+
+    import kamma
+    from kamma.worker import KammaWorker
+
+    try:
+       input = raw_input
+    except NameError:
+       pass
+
+    # task callback
+    def task_fib(data):
+        def fibonacci(n):
+            if n < 0:
+                raise Exception("Value must be >= 0")
+            if n <= 1:
+                return 1
+            return fibonacci(n - 1) + fibonacci(n - 2)
+        try:
+            n = data['n']
+            print("computing fibonacci({})".format(n))
+            result = fibonacci(n)
+            print("*** fibonacci({}): {} ***".format(n, result))
+        except Exception as e:
+            raise kamma.AbortTask(str(e))
+
+
+    if __name__ == "__main__":
+        # kamma worker, we define the TaskCallback
+        worker = KammaWorker(queue_path="task_queue",
+                             task_callbacks=[kamma.TaskCallback(id='fibonacci', callback=task_fib)])
+        # start listening for incoming tasks
+        worker.run_async()
+        print("ctrl+c to exit")
+        try:
+            while True:
+                n = int(input("Fibonacci of: "))
+                # add new fibonacci task
+                worker.push_task(kamma.Task(id='fibonacci', data={'n': n}))
+        except KeyboardInterrupt:
+            pass
+        worker.wait_empty_event()
+        worker.stop()
+
+
+
 .. |Version| image:: https://img.shields.io/pypi/v/kamma.svg?
    :target: http://badge.fury.io/py/kamma
 

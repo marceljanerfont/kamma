@@ -16,37 +16,27 @@ class FileQueue:
         self._manager = Manager()
         self._items = self._manager.list()
         self._mutex = threading.Lock()
-        self._mutex.acquire()
-        try:
+        with self._mutex:
             logger.info("initializing FileQueue at {}".format(self._path))
             if not os.path.isdir(self._path):
                 os.makedirs(self._path)
             self.__load_items()
-        finally:
-            self._mutex.release()
 
     def length(self):
-        self._mutex.acquire()
-        try:
+        with self._mutex:
             return len(self._items)
-        finally:
-            self._mutex.release()
 
     def head(self):
-        self._mutex.acquire()
-        try:
+        with self._mutex:
             head_idx = self.__head_index
             if head_idx >= 0:
                 logger.debug("head item: {}".format(head_idx))
                 with open(self.__filename(head_idx), "r") as file:
                     return file.read()
             return None
-        finally:
-            self._mutex.release()
 
     def pop(self):
-        self._mutex.acquire()
-        try:
+        with self._mutex:
             text = None
             head_idx = self.__head_index
             if head_idx >= 0:
@@ -60,8 +50,6 @@ class FileQueue:
                     self.__rotate_items()
                 # logger.debug("after pop items: {}".format(self._items))
             return text
-        finally:
-            self._mutex.release()
 
     def push(self, text):
         self._mutex.acquire()
@@ -79,11 +67,8 @@ class FileQueue:
 
     @property
     def head_index(self):
-        self._mutex.acquire()
-        try:
+        with self._mutex:
             return self.__head_index
-        finally:
-            self._mutex.release()
 
     @property
     def max_head_index(self):
@@ -91,11 +76,8 @@ class FileQueue:
 
     @property
     def tail_index(self):
-        self._mutex.acquire()
-        try:
+        with self._mutex:
             return self.__tail_index
-        finally:
-            self._mutex.release()
 
     @property
     def __head_index(self):
