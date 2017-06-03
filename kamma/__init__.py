@@ -1,6 +1,6 @@
 # -*- encoding: utf-8 -*-
 
-__version__ = '0.0.4'
+__version__ = '0.0.5'
 
 import logging
 from collections import namedtuple
@@ -32,6 +32,6 @@ class TaskNotRegistered(Exception):
 
 class AbortTask(Exception):
     ''' Exception which can be raised by the callback in order to
-    abort the executing task due because the app considers it as invalid
+    abort the executing task due to a decision taken by the application
     '''
     pass
