@@ -14,8 +14,8 @@ from kamma.queue import FileQueue
 logger = logging.getLogger(__name__)
 
 
-class KammaWorker(object):
-    def __init__(self, task_callbacks, queue_path="task_queue", retry_interval=15):
+class Kamma(object):
+    def __init__(self, queue_path="task_queue", retry_interval=15):
         self._retry_interval = max(1, retry_interval)
         self._quit = False
         self._thread = None
@@ -25,15 +25,18 @@ class KammaWorker(object):
         self._empty_event = threading.Event()
         self._push_event = threading.Event()
         self._quit_event = threading.Event()
-        # maps of task types --> task callback
-        for task in task_callbacks:
-            self._tasks[task.id] = task.callback
         self._queue = FileQueue(queue_path)
 
     def __del__(self):
         self.stop()
         self._tasks = None
         self._queue = None
+
+    def task(self, id):
+        def decorator(func):
+            self._tasks[id] = func
+            return func
+        return decorator
 
     def push_task(self, task):
         logger.debug('push task of type \'{}\' with data: {}'.format(task.id, task.data))
@@ -45,20 +48,22 @@ class KammaWorker(object):
             self._push_event.set()
 
     def stop(self):
-        logger.info('stopping')
         with self._mutex:
             self._quit = True
             self._push_event.set()
             self._quit_event.set()
             if self._thread and self._thread.is_alive():
+                logger.info('stopping')
                 self._thread.join()
-        logger.info('stopped')
+                logger.info('stopped')
 
     def pending(self):
         return self._queue.length()
 
     def wait_empty_event(self, timeout=None):
         logger.info('waiting')
+        if self._queue.length() == 0:
+            self._empty_event.set()
         self._empty_event.wait(timeout)
         if self._exception:
             e = self._exception
@@ -120,5 +125,5 @@ class KammaWorker(object):
 
 
 if __name__ == "__main__":
-    worker = KammaWorker(tasks=dict())
+    worker = Kamma(tasks=dict())
     worker.stop()
