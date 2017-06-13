@@ -32,27 +32,32 @@ class TaskTests(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_execute(self):
-        def callback(a, b, c):
-            logger.debug("this is the callback, a: {a}, b: {b}, c: {c}".format(a=a, b=b, c=c))
+    # callbacks cannot be a nested functions
+    def callback_ok(self, a, b, c):
+        logger.debug("this is the callback, a: {a}, b: {b}, c: {c}".format(a=a, b=b, c=c))
 
+    def callback_2sec(self, a, b, c):
+        logger.debug("starting callback, a: {a}, b: {b}, c: {c}".format(a=a, b=b, c=c))
+        time.sleep(2)
+        logger.debug("callback done")
+
+    def callback_abort(self, a, b, c):
+        logger.debug("this is the callback, a: {a}, b: {b}, c: {c}".format(a=a, b=b, c=c))
+        raise kamma.AbortTask("I'm lazy")
+
+    def test_execute(self):
         quit_event = threading.Event()
         tc = task.TaskCallback(id='callback',
-                               callback=callback,
+                               callback=self.callback_ok,
                                timeout=1,
                                retry_wait=task.wait_fixed(15),
                                retry_stop=task.stop_none())
         tc.execute(quit_event, a=1, b=2, c=3)
 
     def test_execute_timeout(self):
-        def callback(a, b, c):
-            logger.debug("starting callback, a: {a}, b: {b}, c: {c}".format(a=a, b=b, c=c))
-            time.sleep(2)
-            logger.debug("callback done")
-
         quit_event = threading.Event()
         tc = task.TaskCallback(id='callback',
-                               callback=callback,
+                               callback=self.callback_2sec,
                                timeout=1,
                                retry_wait=task.wait_fixed(2),
                                retry_stop=task.stop_after_attempt(1))
@@ -63,13 +68,9 @@ class TaskTests(unittest.TestCase):
         self.assertEqual(info.delay, 2)
 
     def test_execute_aborted(self):
-        def callback(a, b, c):
-            logger.debug("this is the callback, a: {a}, b: {b}, c: {c}".format(a=a, b=b, c=c))
-            raise kamma.AbortTask("I'm lazy")
-
         quit_event = threading.Event()
         tc = task.TaskCallback(id='callback',
-                               callback=callback,
+                               callback=self.callback_abort,
                                timeout=1,
                                retry_wait=task.wait_fixed(2),
                                retry_stop=task.stop_after_attempt(1))

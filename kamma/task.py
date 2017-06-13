@@ -2,7 +2,9 @@
 import sys
 from collections import namedtuple
 import multiprocessing
+import copy_reg
 import logging
+import types
 import kamma
 
 try:
@@ -18,8 +20,21 @@ Task = namedtuple('Task', ['id', 'kwargs'])
 exec_info = namedtuple('exec_info', ['success', 'attempts', 'delay'])
 
 
+def _pickle_method(m):
+    if m.im_self is None:
+        print("-------------------------------")
+        return getattr, (m.im_class, m.im_func.func_name)
+    else:
+        print("+++++++++++++++++++++++++++++++")
+        return getattr, (m.im_self, m.im_func.func_name)
+
+
+copy_reg.pickle(types.MethodType, _pickle_method)
+
+
 class stop_none(object):
     """Non stop strategy."""
+
     def __call__(self, previous_attempt_number, delay_since_first_attempt):
         return False
 
@@ -46,6 +61,7 @@ class stop_after_delay(object):
 
 class wait_fixed(object):
     """Wait strategy that waits a fixed amount of time between each retry."""
+
     def __init__(self, wait):
         self.wait_fixed = wait
 
@@ -58,6 +74,7 @@ class wait_incremental(object):
     Starting at a starting value and incrementing by a value for each attempt
     (and restricting the upper limit to some maximum value).
     """
+
     def __init__(self, start=0, increment=100, max=MAX_WAIT):
         self.start = start
         self.increment = increment
@@ -73,6 +90,7 @@ class wait_exponential(object):
     It allows for a customized multiplier and an ability to restrict the
     upper limit to some maximum value.
     """
+
     def __init__(self, exp_base=2, multiplier=1, max=MAX_WAIT):
         self.multiplier = multiplier
         self.exp_base = exp_base
@@ -89,7 +107,10 @@ class wait_exponential(object):
 
 # task is a piece of work to be done
 class TaskCallback(object):
-    """Task definition by it 'id', callback, timeout in seconds, retry wait and retry stop."""
+    """Task definition by it 'id', callback, timeout in seconds, retry wait and retry stop.
+    WARNING: callbacks cannot be nested functions (python in windows)
+    """
+
     def __init__(self, id, callback, timeout, retry_wait, retry_stop):
         self._id = id
         self._callback = callback
@@ -116,7 +137,9 @@ class TaskCallback(object):
         # Start bar as a process
         # concurrent.futures were introduced in python 3.2
         exception_queue = multiprocessing.Queue()
-        p = multiprocessing.Process(target=self._run_callback, daemon=True, args=(self._callback, exception_queue,), kwargs=kwargs)
+        # daemon=True,
+        p = multiprocessing.Process(target=self._run_callback, args=(self._callback, exception_queue,), kwargs=kwargs)
+        # p = multiprocessing.Process(target=_run_callback2, args=(self._callback,), kwargs=kwargs)
         p.start()
 
         # Wait for self._timoeut seconds or until process finishes
@@ -140,3 +163,7 @@ class TaskCallback(object):
             callback(**kwargs)
         except Exception as e:
             exception_queue.put(e)
+
+
+def _run_callback2(callback, **kwargs):
+    print("hooooolaaaa")
