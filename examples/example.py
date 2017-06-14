@@ -52,7 +52,7 @@ def fibonacci(n, level=0):
     if n > 1:
         result = fibonacci(n - 1, level=level + 1) + fibonacci(n - 2, level=level + 1)
     if level == 0:
-        print("*** RESULT: fibonacci of '{}'' is '{}' ***".format(n, result))
+        print("*** RESULT: fibonacci of '{}' is '{}' ***".format(n, result))
     return result
 
 

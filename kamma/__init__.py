@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 import logging
 
-__version__ = '0.0.6'
+__version__ = '0.0.7'
 
 try:
     # not available in python 2.6

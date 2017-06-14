@@ -10,14 +10,15 @@ Nowadays local disk access is an undervalued resource for many reasons, however 
 
 Limitations
 -----------
-Up to ``(sys.maxint - FileQue.max_head_index)`` items can hold the queue. Not recommended for high performance scenarios.
+* Up to ``(sys.maxint - FileQue.max_head_index)`` tasks can be queued as maximum.
+* **All task's arguments should be serializable by json**
+* Not recommended for high performance scenarios.
 
 Install
 -------
 As simple as: 
 
-
-    pip install kamma
+    ``pip install kamma``
 
 
 Example
@@ -48,7 +49,7 @@ Example
         if n > 1:
             result = fibonacci(n - 1, level=level + 1) + fibonacci(n - 2, level=level + 1)
         if level == 0:
-            print("*** RESULT: fibonacci of '{}'' is '{}' ***".format(n, result))
+            print("*** RESULT: fibonacci of '{}' is '{}' ***".format(n, result))
         return result
 
 
