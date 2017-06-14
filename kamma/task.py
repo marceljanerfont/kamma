@@ -2,7 +2,7 @@
 import sys
 from collections import namedtuple
 import multiprocessing
-import copy_reg
+#import copy_reg
 import logging
 import types
 import kamma
@@ -16,20 +16,20 @@ except AttributeError:
 logger = logging.getLogger(__name__)
 
 """ task to be done."""
-Task = namedtuple('Task', ['id', 'kwargs'])
-exec_info = namedtuple('exec_info', ['success', 'attempts', 'delay'])
+Task = namedtuple('Task', ['callback', 'kwargs'])
+exec_info = namedtuple('exec_info', ['attempts', 'delay'])
 
 
-def _pickle_method(m):
-    if m.im_self is None:
-        print("-------------------------------")
-        return getattr, (m.im_class, m.im_func.func_name)
-    else:
-        print("+++++++++++++++++++++++++++++++")
-        return getattr, (m.im_self, m.im_func.func_name)
+# def _pickle_method(m):
+#     if m.im_self is None:
+#         print("-------------------------------")
+#         return getattr, (m.im_class, m.im_func.func_name)
+#     else:
+#         print("+++++++++++++++++++++++++++++++")
+#         return getattr, (m.im_self, m.im_func.func_name)
 
 
-copy_reg.pickle(types.MethodType, _pickle_method)
+# copy_reg.pickle(types.MethodType, _pickle_method)
 
 
 class stop_none(object):
@@ -111,8 +111,7 @@ class TaskCallback(object):
     WARNING: callbacks cannot be nested functions (python in windows)
     """
 
-    def __init__(self, id, callback, timeout, retry_wait, retry_stop):
-        self._id = id
+    def __init__(self, callback, timeout, retry_wait, retry_stop):
         self._callback = callback
         self._timeout = timeout
         self._retry_wait = retry_wait
@@ -122,16 +121,19 @@ class TaskCallback(object):
         previous_attempt_number = 0
         delay_since_first_attempt = 0
         while not self._retry_stop(previous_attempt_number, delay_since_first_attempt):
+            logger.debug("Executing task '{cb}' try: {attempt} total wait: {delay}".format(cb=self._callback.__name__,
+                                                                                           attempt=previous_attempt_number + 1,
+                                                                                           delay=delay_since_first_attempt))
             try:
                 if self._execute(**kwargs):
-                    return exec_info(success=True, attempts=previous_attempt_number + 1, delay=delay_since_first_attempt)
+                    return exec_info(attempts=previous_attempt_number + 1, delay=delay_since_first_attempt)
             except kamma.AbortTask as e:
                 raise e
             wait = self._retry_wait(previous_attempt_number, delay_since_first_attempt)
             quit_event.wait(wait)
             previous_attempt_number += 1
             delay_since_first_attempt += wait
-        return exec_info(success=False, attempts=previous_attempt_number, delay=delay_since_first_attempt)
+        raise kamma.RetryStopped(callback=self._callback.__name__, attempts=previous_attempt_number, delay=delay_since_first_attempt)
 
     def _execute(self, **kwargs):
         # Start bar as a process
@@ -139,7 +141,6 @@ class TaskCallback(object):
         exception_queue = multiprocessing.Queue()
         # daemon=True,
         p = multiprocessing.Process(target=self._run_callback, args=(self._callback, exception_queue,), kwargs=kwargs)
-        # p = multiprocessing.Process(target=_run_callback2, args=(self._callback,), kwargs=kwargs)
         p.start()
 
         # Wait for self._timoeut seconds or until process finishes
@@ -147,7 +148,7 @@ class TaskCallback(object):
 
         # If thread is still active
         if p.is_alive():
-            logger.warning("Task '{id}' timeout after {sec} seconds. It is going to be aborted.".format(id=self._id, sec=self._timeout))
+            logger.warning("Task '{cb}' timeout after {sec} seconds. It is going to be aborted.".format(cb=self._callback.__name__, sec=self._timeout))
             # Terminate
             p.terminate()
             p.join()
@@ -155,7 +156,7 @@ class TaskCallback(object):
         # process child exception
         if not exception_queue.empty():
             raise exception_queue.get_nowait()
-        logger.debug("Task '{id}' executed successfully".format(id=self._id))
+        logger.debug("Task '{cb}' executed successfully".format(cb=self._callback.__name__))
         return True
 
     def _run_callback(self, callback, exception_queue, **kwargs):
@@ -163,7 +164,3 @@ class TaskCallback(object):
             callback(**kwargs)
         except Exception as e:
             exception_queue.put(e)
-
-
-def _run_callback2(callback, **kwargs):
-    print("hooooolaaaa")

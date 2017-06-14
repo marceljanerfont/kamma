@@ -10,7 +10,7 @@ import json
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 import kamma
-from kamma import Retry, wait_fixed
+from kamma import task
 from kamma.queue import FileQueue
 
 
@@ -25,7 +25,7 @@ class Kamma(object):
         self._quit = False
         self._thread = None
         self._exception = None
-        self._tasks = dict()
+        self._callbacks = dict()
         self._mutex = threading.Lock()
         self._empty_event = threading.Event()
         self._push_event = threading.Event()
@@ -34,32 +34,31 @@ class Kamma(object):
 
     def __del__(self):
         self.stop()
-        self._tasks = None
+        self._callbacks = None
         self._queue = None
 
-    def task_callback(self, id, timeout=, retry_wait, retry_stop):
+    def task_callback(self, id, timeout=(4 * 60 * 60), retry_wait=task.wait_fixed(15), retry_stop=task.stop_none()):
         ''' Registers a Task in Kamma.
-        :param str id: It is the task identifier and should be unique.
         '''
         def decorator(func):
-            self.add_task(id=id, callback=func, retry=retry)
+            self.add_task_callback(callback=func, timeout=timeout, retry_wait=retry_wait, retry_stop=retry_stop)
             return func
         return decorator
 
-    def add_task_callback(self, id, callback, retry=Retry(wait=wait_fixed(15), stopper=None)):
+    def add_task_callback(self, callback, timeout=(4 * 60 * 60), retry_wait=task.wait_fixed(15), retry_stop=task.stop_none()):
         ''' Registers a Task in Kamma.
-        :param str id: It is the task identifier and should be unique.
+        :param function callback: The name of the callback function has to be unique.
         '''
-        if id in self._tasks:
-            raise kamma.TaskAlreadyRegistered('the task id \'{}\' is already used'.format(id))
-        self._tasks[id] = _task(callback, retry)
+        if callback.__name__ in self._callbacks:
+            raise kamma.TaskAlreadyRegistered('the task \'{}\' is already used'.format(callback.__name__))
+        self._callbacks[callback.__name__] = task.TaskCallback(callback, timeout=timeout, retry_wait=retry_wait, retry_stop=retry_stop)
 
-    def push_task(self, task):
-        logger.debug('push task of type \'{}\' with data: {}'.format(task.id, task.data))
+    def push_task(self, callback, **kwargs):
+        logger.debug('push task \'{}\' with kwargs: {}'.format(callback.callback, kwargs))
         with self._mutex:
-            if not self._is_registered(task.id):
-                raise kamma.TaskNotRegistered('the task \'{}\' is not registered'.format(task.id))
-            self._queue.push(json.dumps({'id': task.id, 'data': task.data}))
+            if callback.__name__ not in self._callbacks:
+                raise kamma.TaskNotRegistered('the task \'{}\' is not registered'.format(callback.callback))
+            self._queue.push(json.dumps({'callback': callback.callback, 'kwargs': kwargs}))
             self._empty_event.clear()
             self._push_event.set()
 
@@ -86,16 +85,10 @@ class Kamma(object):
             self._exception = None
             raise e
 
-    def _is_registered(self, id):
-        return True if id in self._tasks else False
-
-    def _get_callback(self, id):
-        return self._tasks.get(id, _task(None, None)).callback
-
-    def _get_task(self, id):
-        if not self._is_registered(id):
-            raise kamma.TaskNotRegistered('the task \'{}\' is not registered'.format(id))
-        return self._tasks.get(id, None)
+    def _get_task_callback(self, callback):
+        if callback not in self._callbacks:
+            raise kamma.TaskNotRegistered('the task \'{}\' is not registered'.format(callback))
+        return self._callbacks.get(callback, None)
 
     def run(self):
         logger.info("running")
@@ -123,17 +116,19 @@ class Kamma(object):
         count = 0
         while not self._quit and self._queue.length() > 0:
             task_queued = json.loads(self._queue.head())
-            task = self._get_task(task_queued['id'])
+            task_callback = self._get_task_callback(task_queued['callback'])
             try:
-                self._process_task(task, task_queued['data'])
+                kwargs = task_queued['kwargs']
+                task_callback.execute(quit_event=self._quit_event, **kwargs)
                 self._queue.pop()
             except kamma.AbortTask as e:
-                logger.info('received AbortTask exception from \'{}\' due to: {}'.format(task.id, e))
+                logger.warning('AbortTask exception from \'{}\' due to: {}'.format(task_queued['callback'], e))
                 self._queue.pop()
+                # TODO: save task in Abort folder
             except kamma.RetryStopped as e:
-                logger.warning('received RetryStopped exception from \'{}\' due to: {}'.format(task_id, e))
+                logger.warning('RetryStopped exception from \'{}\' due to: {}'.format(task_queued['callback'], e))
                 self._queue.pop()
-
+                # TODO: save task in Failed folder
             count = count + 1
         if count > 0:
             logger.info("processed {} queued tasks".format(count))
@@ -142,22 +137,6 @@ class Kamma(object):
                 self._push_event.clear()
                 self._empty_event.set()
                 logger.debug("set empty event")
-
-    def _process_task(self, task, task_data):
-        logger.debug('processing task: {}'.format(task.id))
-        retry = task.retry
-        stop = False
-        while not self._quit and not stop:
-            try:
-                task.callback(task_data)
-                self._queue.pop()
-            except kamma.AbortTask as e:
-                raise e
-            except Exception:
-                logger.warning(traceback.format_exc())
-                # wait retry
-            self._quit_event.wait(self._retry_interval)
-
 
 
 if __name__ == "__main__":

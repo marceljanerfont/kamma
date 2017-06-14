@@ -39,4 +39,6 @@ class AbortTask(Exception):
 class RetryStopped(Exception):
     ''' When a task cannot be executed within limited retry policy
     '''
-    pass
+    def __init__(self, callback, attempts, delay):
+        msg = "The task '{cb}' has failed after {tries} attemps and {sec} seconds".format(cb=callback, tries=attempts, sec=delay)
+        super(RetryStopped, self).__init__(msg)
