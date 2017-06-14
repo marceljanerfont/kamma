@@ -1,9 +1,8 @@
 # -*- encoding: utf-8 -*-
-
-__version__ = '0.0.5'
-
 import logging
-from collections import namedtuple
+
+__version__ = '0.0.6'
+
 try:
     # not available in python 2.6
     from logging import NullHandler
@@ -16,16 +15,16 @@ except ImportError:
 # Add NullHandler to prevent logging warnings
 logging.getLogger(__name__).addHandler(NullHandler())
 
-# class for Task definition
-TaskCallback = namedtuple('TaskCallback', ['id', 'callback'])
-
-# class to create an instance of a certain task type
-Task = namedtuple('Task', ['id', 'data'])
-
 
 class TaskNotRegistered(Exception):
     '''It can be raised by the worker when it tries to execute a
     which there is not callback
+    '''
+    pass
+
+
+class TaskAlreadyRegistered(Exception):
+    '''It is raised when @task decorator or Kamma.add_task is being called with a task id already used.
     '''
     pass
 
@@ -35,3 +34,25 @@ class AbortTask(Exception):
     abort the executing task due to a decision taken by the application
     '''
     pass
+
+
+class TimeoutTask(Exception):
+    ''' Exception which can be raised internally in kamma when the
+    callback lasts more time than its given 'timeout'
+    '''
+    pass
+
+
+class RetryStopped(Exception):
+    ''' When a task cannot be executed within limited retry policy
+    '''
+
+    def __init__(self, callback, attempts, delay, last_error):
+        self.callback = callback
+        self.attempts = attempts
+        self.delay = delay
+        self.last_error = last_error
+        self.json_task = ""
+        msg = "The task '{cb}' has failed after {tries} attempts and {sec} seconds. "\
+            "Last Error: {err}".format(cb=callback, tries=attempts, sec=delay, err=last_error)
+        super(RetryStopped, self).__init__(msg)

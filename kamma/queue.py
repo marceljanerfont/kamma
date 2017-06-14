@@ -13,8 +13,8 @@ class FileQueue:
     def __init__(self, path, max_head_index=100):
         self._path = path
         self._max_head_index = max_head_index
-        self._manager = Manager()
-        self._items = self._manager.list()
+        # self._manager = Manager()
+        self._items = list()  #  self._manager.list()
         self._mutex = threading.Lock()
         with self._mutex:
             logger.info("initializing FileQueue at {}".format(self._path))

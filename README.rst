@@ -26,47 +26,46 @@ Example
 .. code-block:: python
 
     import kamma
-    from kamma.worker import KammaWorker
+    from kamma import task
+    from kamma.app import Kamma
 
+    # python 2 and 3 compatibility issue
     try:
        input = raw_input
     except NameError:
        pass
 
-    # task callback
-    def task_fib(data):
-        def fibonacci(n):
-            if n < 0:
-                raise Exception("Value must be >= 0")
-            if n <= 1:
-                return 1
-            return fibonacci(n - 1) + fibonacci(n - 2)
-        try:
-            n = data['n']
-            print("computing fibonacci({})".format(n))
-            result = fibonacci(n)
-            print("*** fibonacci({}): {} ***".format(n, result))
-        except Exception as e:
-            raise kamma.AbortTask(str(e))
+    # kamma worker
+    app = Kamma()
+
+    # registering fibonacci callback in kamma app
+    @app.task_callback(timeout=5, retry_wait=task.wait_fixed(1),
+                       retry_stop=task.stop_after_attempt(1))
+    def fibonacci(n, level=0):
+        result = 1
+        if n < 0 or n > 100:
+            raise kamma.AbortTask("n has to be 0 <= n <= 100")
+        if n > 1:
+            result = fibonacci(n - 1, level=level + 1) + fibonacci(n - 2, level=level + 1)
+        if level == 0:
+            print("*** RESULT: fibonacci of '{}'' is '{}' ***".format(n, result))
+        return result
 
 
     if __name__ == "__main__":
-        # kamma worker, we define the TaskCallback
-        worker = KammaWorker(queue_path="task_queue",
-                             task_callbacks=[kamma.TaskCallback(id='fibonacci', callback=task_fib)])
         # start listening for incoming tasks
-        worker.run_async()
-        print("ctrl+c to exit")
-        try:
-            while True:
-                n = int(input("Fibonacci of: "))
-                # add new fibonacci task
-                worker.push_task(kamma.Task(id='fibonacci', data={'n': n}))
-        except KeyboardInterrupt:
-            pass
-        worker.wait_empty_event()
-        worker.stop()
+        app.run_async()
+        print("Enter the value of the fibonacci you want to compute, 0 to exit")
+        n = 1
+        while True:
+            n = int(input(""))
+            if n == 0:
+                break
+            # add new fibonacci task
+            app.push_task(fibonacci, n=n)
+        app.stop()
 
+The complete example here: ``examples/example.py``
 
 
 .. |Version| image:: https://img.shields.io/pypi/v/kamma.svg?

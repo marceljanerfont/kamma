@@ -10,7 +10,6 @@ import os
 
 # add kamma path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-import kamma
 from kamma.queue import FileQueue
 
 
@@ -25,14 +24,19 @@ TEST_PATH = "test_queue"
 NUM_ITEMS = 50
 
 
+def _clear_queue():
+    try:
+        shutil.rmtree(TEST_PATH)
+    except Exception:
+        pass
+
+
 class EnqueueTests(unittest.TestCase):
     def setUp(self):
-        queue = FileQueue(TEST_PATH)
-        while queue.length():
-            queue.pop()
+        _clear_queue()
 
     def tearDown(self):
-        shutil.rmtree(TEST_PATH)
+        _clear_queue()
 
     def test_enqueue(self):
         queue = FileQueue(TEST_PATH)
@@ -45,15 +49,14 @@ class EnqueueTests(unittest.TestCase):
 
 class DequeueTests(unittest.TestCase):
     def setUp(self):
+        _clear_queue()
         queue = FileQueue(TEST_PATH)
-        while queue.length():
-            queue.pop()
         for i in range(0, NUM_ITEMS):
             queue.push("{0:05d}".format(i))
         self.assertEqual(NUM_ITEMS, queue.length())
 
     def tearDown(self):
-        shutil.rmtree(TEST_PATH)
+        _clear_queue()
 
     def test_dequeue(self):
         queue = FileQueue(TEST_PATH)
@@ -70,12 +73,10 @@ class DequeueTests(unittest.TestCase):
 
 class EnqueueDequeueTests(unittest.TestCase):
     def setUp(self):
-        queue = FileQueue(TEST_PATH)
-        while queue.length():
-            queue.pop()
+        _clear_queue()
 
     def tearDown(self):
-        shutil.rmtree(TEST_PATH)
+        _clear_queue()
 
     def test_enqueue_dequeue(self):
         # enqueue NUM_ITEMS
@@ -127,6 +128,7 @@ class EnqueueDequeueTests(unittest.TestCase):
         self.assertEqual(NUM_ITEMS + NUM_ITEMS, counter)
         self.assertEqual(0, queue.length())
         queue = None
+
 
 '''
 TODO:
