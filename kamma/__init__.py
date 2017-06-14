@@ -36,9 +36,23 @@ class AbortTask(Exception):
     pass
 
 
+class TimeoutTask(Exception):
+    ''' Exception which can be raised internally in kamma when the
+    callback lasts more time than its given 'timeout'
+    '''
+    pass
+
+
 class RetryStopped(Exception):
     ''' When a task cannot be executed within limited retry policy
     '''
-    def __init__(self, callback, attempts, delay):
-        msg = "The task '{cb}' has failed after {tries} attemps and {sec} seconds".format(cb=callback, tries=attempts, sec=delay)
+
+    def __init__(self, callback, attempts, delay, last_error):
+        self.callback = callback
+        self.attempts = attempts
+        self.delay = delay
+        self.last_error = last_error
+        self.json_task = ""
+        msg = "The task '{cb}' has failed after {tries} attempts and {sec} seconds. "\
+            "Last Error: {err}".format(cb=callback, tries=attempts, sec=delay, err=last_error)
         super(RetryStopped, self).__init__(msg)

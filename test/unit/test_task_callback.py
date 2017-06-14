@@ -36,6 +36,10 @@ class TaskTests(unittest.TestCase):
     def callback_ok(self, a, b, c):
         logger.debug("this is the '{cb}', a: {a}, b: {b}, c: {c}".format(cb=__name__, a=a, b=b, c=c))
 
+    def callback_ko(self, a, b, c):
+        logger.debug("this is the '{cb}', a: {a}, b: {b}, c: {c}".format(cb=__name__, a=a, b=b, c=c))
+        raise Exception("boom!")
+
     def callback_2sec(self, a, b, c):
         logger.debug("starting '{cb}', a: {a}, b: {b}, c: {c}".format(cb=__name__, a=a, b=b, c=c))
         time.sleep(2)
@@ -53,14 +57,37 @@ class TaskTests(unittest.TestCase):
                                retry_stop=task.stop_none())
         tc.execute(quit_event, a=1, b=2, c=3)
 
-    def test_execute_timeout(self):
+    def test_execute_retry_stop(self):
+        quit_event = threading.Event()
+        tc = task.TaskCallback(callback=self.callback_ko,
+                               timeout=1,
+                               retry_wait=task.wait_fixed(2),
+                               retry_stop=task.stop_after_attempt(1))
+        try:
+            tc.execute(quit_event, a=1, b=2, c=3)
+            self.assertTrue(False, "The raised excpetion should be of type 'kamma.RetryStopped'.")
+        except kamma.RetryStopped as e:
+            self.assertEqual(e.attempts, 1)
+            self.assertEqual(e.delay, 2)
+        except Exception as e:
+            self.assertTrue(False, "The raised excpetion should be of type 'kamma.RetryStopped'."
+                                   "Received Exception: {}".format(str(e)))
+
+    def test_execute_timeout_retry_stop(self):
         quit_event = threading.Event()
         tc = task.TaskCallback(callback=self.callback_2sec,
                                timeout=1,
                                retry_wait=task.wait_fixed(2),
                                retry_stop=task.stop_after_attempt(2))
-        self.assertRaises(kamma.RetryStopped,
-                          lambda: tc.execute(quit_event, a=1, b=2, c=3))
+        try:
+            tc.execute(quit_event, a=1, b=2, c=3)
+            self.assertTrue(False, "The raised excpetion should be of type 'kamma.RetryStopped'.")
+        except kamma.RetryStopped as e:
+            self.assertEqual(e.attempts, 2)
+            self.assertEqual(e.delay, 4)
+        except Exception as e:
+            self.assertTrue(False, "The raised excpetion should be of type 'kamma.RetryStopped'. \
+                                    Received Exception: {}".format(str(e)))
 
     def test_execute_aborted(self):
         quit_event = threading.Event()

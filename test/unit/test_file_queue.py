@@ -10,7 +10,6 @@ import os
 
 # add kamma path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
-import kamma
 from kamma.queue import FileQueue
 
 

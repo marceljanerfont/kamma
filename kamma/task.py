@@ -2,9 +2,7 @@
 import sys
 from collections import namedtuple
 import multiprocessing
-#import copy_reg
 import logging
-import types
 import kamma
 
 try:
@@ -18,18 +16,6 @@ logger = logging.getLogger(__name__)
 """ task to be done."""
 Task = namedtuple('Task', ['callback', 'kwargs'])
 exec_info = namedtuple('exec_info', ['attempts', 'delay'])
-
-
-# def _pickle_method(m):
-#     if m.im_self is None:
-#         print("-------------------------------")
-#         return getattr, (m.im_class, m.im_func.func_name)
-#     else:
-#         print("+++++++++++++++++++++++++++++++")
-#         return getattr, (m.im_self, m.im_func.func_name)
-
-
-# copy_reg.pickle(types.MethodType, _pickle_method)
 
 
 class stop_none(object):
@@ -120,6 +106,7 @@ class TaskCallback(object):
     def execute(self, quit_event, **kwargs):
         previous_attempt_number = 0
         delay_since_first_attempt = 0
+        last_error = ""
         while not self._retry_stop(previous_attempt_number, delay_since_first_attempt):
             logger.debug("Executing task '{cb}' try: {attempt} total wait: {delay}".format(cb=self._callback.__name__,
                                                                                            attempt=previous_attempt_number + 1,
@@ -129,18 +116,24 @@ class TaskCallback(object):
                     return exec_info(attempts=previous_attempt_number + 1, delay=delay_since_first_attempt)
             except kamma.AbortTask as e:
                 raise e
+            except Exception as e:
+                last_error = str(e)
+                logger.warning("Exception running task '{cb}': {e}".format(cb=self._callback.__name__, e=last_error))
             wait = self._retry_wait(previous_attempt_number, delay_since_first_attempt)
             quit_event.wait(wait)
             previous_attempt_number += 1
             delay_since_first_attempt += wait
-        raise kamma.RetryStopped(callback=self._callback.__name__, attempts=previous_attempt_number, delay=delay_since_first_attempt)
+        raise kamma.RetryStopped(callback=self._callback.__name__,
+                                 attempts=previous_attempt_number,
+                                 delay=delay_since_first_attempt,
+                                 last_error=last_error)
 
     def _execute(self, **kwargs):
         # Start bar as a process
         # concurrent.futures were introduced in python 3.2
         exception_queue = multiprocessing.Queue()
-        # daemon=True,
         p = multiprocessing.Process(target=self._run_callback, args=(self._callback, exception_queue,), kwargs=kwargs)
+        # p.daemon = True
         p.start()
 
         # Wait for self._timoeut seconds or until process finishes
@@ -148,11 +141,10 @@ class TaskCallback(object):
 
         # If thread is still active
         if p.is_alive():
-            logger.warning("Task '{cb}' timeout after {sec} seconds. It is going to be aborted.".format(cb=self._callback.__name__, sec=self._timeout))
             # Terminate
             p.terminate()
             p.join()
-            return False
+            raise kamma.TimeoutTask("Timeout triggered after {sec} seconds.".format(sec=self._timeout))
         # process child exception
         if not exception_queue.empty():
             raise exception_queue.get_nowait()
