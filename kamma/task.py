@@ -14,7 +14,6 @@ except AttributeError:
 logger = logging.getLogger(__name__)
 
 """ task to be done."""
-Task = namedtuple('Task', ['callback', 'kwargs'])
 exec_info = namedtuple('exec_info', ['attempts', 'delay'])
 
 

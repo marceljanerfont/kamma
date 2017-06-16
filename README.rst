@@ -27,8 +27,6 @@ Example
 .. code-block:: python
 
     import kamma
-    from kamma import task
-    from kamma.app import Kamma
 
     # python 2 and 3 compatibility issue
     try:
@@ -37,7 +35,7 @@ Example
        pass
 
     # kamma worker
-    app = Kamma()
+    app = kamma.Kamma()
 
     # registering fibonacci callback in kamma app
     @app.task_callback(timeout=5, retry_wait=task.wait_fixed(1),

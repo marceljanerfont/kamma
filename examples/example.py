@@ -4,8 +4,7 @@ import sys
 import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import kamma
-from kamma import task
-from kamma.app import Kamma
+
 # import logging
 
 # handler = logging.StreamHandler()
@@ -26,7 +25,7 @@ except NameError:
    pass
 
 # kamma worker
-app = Kamma()
+app = kamma.Kamma()
 
 
 # registering on_failure callback that will be called after task error
@@ -43,8 +42,8 @@ def on_abortion(json_task, reason):
 
 
 # registering fibonacci callback in kamma app
-@app.task_callback(timeout=5, retry_wait=task.wait_fixed(1),
-                   retry_stop=task.stop_after_attempt(1))
+@app.task_callback(timeout=5, retry_wait=kamma.wait_fixed(1),
+                   retry_stop=kamma.stop_after_attempt(1))
 def fibonacci(n, level=0):
     result = 1
     if n < 0 or n > 100:

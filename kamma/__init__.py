@@ -3,6 +3,12 @@ import logging
 
 __version__ = '0.0.7'
 
+from .app import Kamma
+from .task import (
+    stop_none, stop_after_attempt, stop_after_delay,
+    wait_fixed, wait_incremental, wait_exponential
+)
+
 try:
     # not available in python 2.6
     from logging import NullHandler
