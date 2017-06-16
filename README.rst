@@ -2,7 +2,7 @@ kamma
 =====
 **kamma** is a very simplified task file queue that persists tasks and its needed data. It also has a worker that process all pending tasks.
 
-|Version| |Status| |Coverage| |License|
+|Version| |Versions| |Status| |Coverage| |License|
 
 Motivation
 ----------
@@ -71,6 +71,9 @@ The complete example here: ``examples/example.py``
 
 .. |Version| image:: https://img.shields.io/pypi/v/kamma.svg?
    :target: http://badge.fury.io/py/kamma
+
+.. |Versions| image:: https://img.shields.io/pypi/pyversions/kamma.svg
+    :target: https://pypi.python.org/pypi/kamma
 
 .. |Status| image:: https://img.shields.io/travis/marceljanerfont/kamma.svg?
    :target: https://travis-ci.org/marceljanerfont/kamma
