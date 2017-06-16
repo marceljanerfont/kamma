@@ -1,7 +1,6 @@
 # -*- encoding: utf-8 -*-
 import sys
 import os
-from collections import namedtuple
 import threading
 import traceback
 import logging
@@ -12,8 +11,6 @@ import kamma
 from kamma import task
 from kamma.queue import FileQueue
 
-
-_task = namedtuple('_task', ['callback', 'retry'])
 
 logger = logging.getLogger(__name__)
 

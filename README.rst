@@ -2,7 +2,7 @@ kamma
 =====
 **kamma** is a very simplified task file queue that persists tasks and its needed data. It also has a worker that process all pending tasks.
 
-|Version| |Status| |Coverage| |License|
+|Version| |Versions| |Status| |Coverage| |License|
 
 Motivation
 ----------
@@ -10,14 +10,15 @@ Nowadays local disk access is an undervalued resource for many reasons, however 
 
 Limitations
 -----------
-Up to ``(sys.maxint - FileQue.max_head_index)`` items can hold the queue. Not recommended for high performance scenarios.
+* Up to ``(sys.maxint - FileQue.max_head_index)`` tasks can be queued as maximum.
+* **All task's arguments should be serializable by json**
+* Not recommended for high performance scenarios.
 
 Install
 -------
 As simple as: 
 
-
-    pip install kamma
+    ``pip install kamma``
 
 
 Example
@@ -26,8 +27,6 @@ Example
 .. code-block:: python
 
     import kamma
-    from kamma import task
-    from kamma.app import Kamma
 
     # python 2 and 3 compatibility issue
     try:
@@ -36,7 +35,7 @@ Example
        pass
 
     # kamma worker
-    app = Kamma()
+    app = kamma.Kamma()
 
     # registering fibonacci callback in kamma app
     @app.task_callback(timeout=5, retry_wait=task.wait_fixed(1),
@@ -48,7 +47,7 @@ Example
         if n > 1:
             result = fibonacci(n - 1, level=level + 1) + fibonacci(n - 2, level=level + 1)
         if level == 0:
-            print("*** RESULT: fibonacci of '{}'' is '{}' ***".format(n, result))
+            print("*** RESULT: fibonacci of '{}' is '{}' ***".format(n, result))
         return result
 
 
@@ -70,6 +69,9 @@ The complete example here: ``examples/example.py``
 
 .. |Version| image:: https://img.shields.io/pypi/v/kamma.svg?
    :target: http://badge.fury.io/py/kamma
+
+.. |Versions| image:: https://img.shields.io/pypi/pyversions/kamma.svg
+    :target: https://pypi.python.org/pypi/kamma
 
 .. |Status| image:: https://img.shields.io/travis/marceljanerfont/kamma.svg?
    :target: https://travis-ci.org/marceljanerfont/kamma

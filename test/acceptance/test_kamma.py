@@ -14,8 +14,6 @@ import shutil
 # add kamma path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 import kamma
-from kamma import task
-from kamma.app import Kamma
 
 TEST_PATH = "test_queue"
 
@@ -87,13 +85,13 @@ class KammaTestsCheckOrder(unittest.TestCase):
         self._taskx('task5', data)
 
     def test_usual_case(self):
-        worker = Kamma(queue_path=TEST_PATH)
-        worker.add_task_callback(callback=self.task0, retry_wait=task.wait_fixed(0), retry_stop=task.stop_after_attempt(1))
-        worker.add_task_callback(callback=self.task1, retry_wait=task.wait_fixed(0), retry_stop=task.stop_after_attempt(1))
-        worker.add_task_callback(callback=self.task2, retry_wait=task.wait_fixed(0), retry_stop=task.stop_after_attempt(1))
-        worker.add_task_callback(callback=self.task3, retry_wait=task.wait_fixed(0), retry_stop=task.stop_after_attempt(1))
-        worker.add_task_callback(callback=self.task4, retry_wait=task.wait_fixed(0), retry_stop=task.stop_after_attempt(1))
-        worker.add_task_callback(callback=self.task5, retry_wait=task.wait_fixed(0), retry_stop=task.stop_after_attempt(1))
+        worker = kamma.Kamma(queue_path=TEST_PATH)
+        worker.add_task_callback(callback=self.task0, retry_wait=kamma.wait_fixed(0), retry_stop=kamma.stop_after_attempt(1))
+        worker.add_task_callback(callback=self.task1, retry_wait=kamma.wait_fixed(0), retry_stop=kamma.stop_after_attempt(1))
+        worker.add_task_callback(callback=self.task2, retry_wait=kamma.wait_fixed(0), retry_stop=kamma.stop_after_attempt(1))
+        worker.add_task_callback(callback=self.task3, retry_wait=kamma.wait_fixed(0), retry_stop=kamma.stop_after_attempt(1))
+        worker.add_task_callback(callback=self.task4, retry_wait=kamma.wait_fixed(0), retry_stop=kamma.stop_after_attempt(1))
+        worker.add_task_callback(callback=self.task5, retry_wait=kamma.wait_fixed(0), retry_stop=kamma.stop_after_attempt(1))
         cloned_cb_indexs = copy.deepcopy(self.cb_indexs)
         worker.run_async()
         for i in cloned_cb_indexs:
@@ -115,7 +113,7 @@ class KammaTestsExceptionsInKamma(unittest.TestCase):
         pass
 
     def test_exception_pushtask_TaskNotRegistered(self):
-        worker = Kamma(queue_path=TEST_PATH)
+        worker = kamma.Kamma(queue_path=TEST_PATH)
         self.assertRaises(kamma.TaskNotRegistered, lambda: worker.push_task(callback=self.task))
         # worker.wait()
         worker.stop()
@@ -138,8 +136,8 @@ class KammaTestsExceptionsInTask(unittest.TestCase):
             raise Exception('I don\'t want to work, try {}'.format(self.count[0]))
 
     def test_exception_in_task(self):
-        worker = Kamma(queue_path=TEST_PATH)
-        worker.add_task_callback(callback=self.task0, retry_wait=task.wait_fixed(0), retry_stop=task.stop_after_attempt(self.num_failures+1))
+        worker = kamma.Kamma(queue_path=TEST_PATH)
+        worker.add_task_callback(callback=self.task0, retry_wait=kamma.wait_fixed(0), retry_stop=kamma.stop_after_attempt(self.num_failures+1))
         worker.push_task(callback=self.task0)
         worker.run_async()
         worker.wait_empty_event()
@@ -169,7 +167,7 @@ class KammaTestsOnAbortion(unittest.TestCase):
         self.failure_called = True
 
     def test_on_abortion(self):
-        worker = Kamma(queue_path=TEST_PATH)
+        worker = kamma.Kamma(queue_path=TEST_PATH)
         worker.add_on_abortion(self.on_abortion)
         worker.add_task_callback(self.task_abort)
         worker.run_async()
@@ -179,9 +177,9 @@ class KammaTestsOnAbortion(unittest.TestCase):
         self.assertTrue(self.abortion_called)
 
     def test_on_failure(self):
-        worker = Kamma(queue_path=TEST_PATH)
+        worker = kamma.Kamma(queue_path=TEST_PATH)
         worker.add_on_failure(self.on_failure)
-        worker.add_task_callback(self.task_failure, retry_wait=task.wait_fixed(0), retry_stop=task.stop_after_attempt(1))
+        worker.add_task_callback(self.task_failure, retry_wait=kamma.wait_fixed(0), retry_stop=kamma.stop_after_attempt(1))
         worker.run_async()
         worker.push_task(self.task_failure)
         worker.wait_empty_event()
