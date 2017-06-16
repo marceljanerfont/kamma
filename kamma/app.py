@@ -15,7 +15,7 @@ from kamma.queue import FileQueue
 logger = logging.getLogger(__name__)
 
 
-class Kamma(object):
+class Worker(object):
     def __init__(self, queue_path="task_queue"):
         self._quit = False
         self._thread = None
@@ -160,5 +160,5 @@ class Kamma(object):
 
 
 if __name__ == "__main__":
-    worker = Kamma(tasks=dict())
+    worker = Worker()
     worker.stop()

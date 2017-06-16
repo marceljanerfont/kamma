@@ -1,9 +1,9 @@
 # -*- encoding: utf-8 -*-
 import logging
 
-__version__ = '0.0.7'
+__version__ = '0.0.8'
 
-from .app import Kamma
+from .app import Worker
 from .task import (
     stop_none, stop_after_attempt, stop_after_delay,
     wait_fixed, wait_incremental, wait_exponential

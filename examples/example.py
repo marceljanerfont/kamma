@@ -25,7 +25,7 @@ except NameError:
    pass
 
 # kamma worker
-app = kamma.Kamma()
+app = kamma.Worker()
 
 
 # registering on_failure callback that will be called after task error

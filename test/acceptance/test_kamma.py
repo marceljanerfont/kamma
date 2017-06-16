@@ -85,7 +85,7 @@ class KammaTestsCheckOrder(unittest.TestCase):
         self._taskx('task5', data)
 
     def test_usual_case(self):
-        worker = kamma.Kamma(queue_path=TEST_PATH)
+        worker = kamma.Worker(queue_path=TEST_PATH)
         worker.add_task_callback(callback=self.task0, retry_wait=kamma.wait_fixed(0), retry_stop=kamma.stop_after_attempt(1))
         worker.add_task_callback(callback=self.task1, retry_wait=kamma.wait_fixed(0), retry_stop=kamma.stop_after_attempt(1))
         worker.add_task_callback(callback=self.task2, retry_wait=kamma.wait_fixed(0), retry_stop=kamma.stop_after_attempt(1))
@@ -113,7 +113,7 @@ class KammaTestsExceptionsInKamma(unittest.TestCase):
         pass
 
     def test_exception_pushtask_TaskNotRegistered(self):
-        worker = kamma.Kamma(queue_path=TEST_PATH)
+        worker = kamma.Worker(queue_path=TEST_PATH)
         self.assertRaises(kamma.TaskNotRegistered, lambda: worker.push_task(callback=self.task))
         # worker.wait()
         worker.stop()
@@ -136,7 +136,7 @@ class KammaTestsExceptionsInTask(unittest.TestCase):
             raise Exception('I don\'t want to work, try {}'.format(self.count[0]))
 
     def test_exception_in_task(self):
-        worker = kamma.Kamma(queue_path=TEST_PATH)
+        worker = kamma.Worker(queue_path=TEST_PATH)
         worker.add_task_callback(callback=self.task0, retry_wait=kamma.wait_fixed(0), retry_stop=kamma.stop_after_attempt(self.num_failures+1))
         worker.push_task(callback=self.task0)
         worker.run_async()
@@ -167,7 +167,7 @@ class KammaTestsOnAbortion(unittest.TestCase):
         self.failure_called = True
 
     def test_on_abortion(self):
-        worker = kamma.Kamma(queue_path=TEST_PATH)
+        worker = kamma.Worker(queue_path=TEST_PATH)
         worker.add_on_abortion(self.on_abortion)
         worker.add_task_callback(self.task_abort)
         worker.run_async()
@@ -177,7 +177,7 @@ class KammaTestsOnAbortion(unittest.TestCase):
         self.assertTrue(self.abortion_called)
 
     def test_on_failure(self):
-        worker = kamma.Kamma(queue_path=TEST_PATH)
+        worker = kamma.Worker(queue_path=TEST_PATH)
         worker.add_on_failure(self.on_failure)
         worker.add_task_callback(self.task_failure, retry_wait=kamma.wait_fixed(0), retry_stop=kamma.stop_after_attempt(1))
         worker.run_async()

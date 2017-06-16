@@ -35,7 +35,7 @@ Example
        pass
 
     # kamma worker
-    app = kamma.Kamma()
+    app = kamma.Worker()
 
     # registering fibonacci callback in kamma app
     @app.task_callback(timeout=5, retry_wait=task.wait_fixed(1),
