@@ -34,7 +34,7 @@ class Worker(object):
         self._callbacks = None
         self._queue = None
 
-    def task_callback(self, timeout=(4 * 60 * 60), retry_wait=task.wait_fixed(15), retry_stop=task.stop_none()):
+    def task_callback(self, timeout=0, retry_wait=task.wait_fixed(15), retry_stop=task.stop_none()):
         ''' Registers a Task callback in Kamma.
         '''
         def decorator(func):

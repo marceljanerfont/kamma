@@ -52,7 +52,7 @@ class TaskTests(unittest.TestCase):
     def test_execute(self):
         quit_event = threading.Event()
         tc = task.TaskCallback(callback=self.callback_ok,
-                               timeout=1,
+                               timeout=0,
                                retry_wait=task.wait_fixed(15),
                                retry_stop=task.stop_none())
         tc.execute(quit_event, a=1, b=2, c=3)
@@ -60,7 +60,7 @@ class TaskTests(unittest.TestCase):
     def test_execute_retry_stop(self):
         quit_event = threading.Event()
         tc = task.TaskCallback(callback=self.callback_ko,
-                               timeout=1,
+                               timeout=0,
                                retry_wait=task.wait_fixed(2),
                                retry_stop=task.stop_after_attempt(1))
         try:
