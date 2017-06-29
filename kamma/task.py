@@ -111,8 +111,13 @@ class TaskCallback(object):
                                                                                            attempt=previous_attempt_number + 1,
                                                                                            delay=delay_since_first_attempt))
             try:
-                if self._execute(**kwargs):
+                if self._timeout == 0:
+                    self._callback(**kwargs)
+                    logger.debug("Task '{cb}' executed successfully".format(cb=self._callback.__name__))
                     return exec_info(attempts=previous_attempt_number + 1, delay=delay_since_first_attempt)
+                else:
+                    if self._execute(**kwargs):
+                        return exec_info(attempts=previous_attempt_number + 1, delay=delay_since_first_attempt)
             except kamma.AbortTask as e:
                 raise e
             except Exception as e:
