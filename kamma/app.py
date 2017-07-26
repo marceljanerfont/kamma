@@ -58,7 +58,7 @@ class Worker(object):
             return func
         return decorator
 
-    def add_task_callback(self, callback, timeout=(4 * 60 * 60), retry_wait=task.wait_fixed(15), retry_stop=task.stop_none()):
+    def add_task_callback(self, callback, timeout=0, retry_wait=task.wait_fixed(15), retry_stop=task.stop_none()):
         ''' Registers a Task in Kamma.
         :param function callback: The name of the callback function has to be unique.
         '''

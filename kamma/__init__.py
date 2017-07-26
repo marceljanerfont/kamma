@@ -1,7 +1,7 @@
 # -*- encoding: utf-8 -*-
 import logging
 
-__version__ = '0.0.9'
+__version__ = '0.0.10'
 
 from .app import Worker
 from .task import (
